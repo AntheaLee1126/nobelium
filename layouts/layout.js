@@ -17,88 +17,144 @@ const Layout = ({
   blockMap,
   frontMatter,
   emailHash,
-  fullWidth = false
+  fullWidth = true,
+  tags,
+  prev,
+  next
 }) => {
-  const locale = useLocale()
-  const router = useRouter()
+  const meta = {
+    title: frontMatter.title,
+    type: 'article'
+  }
+  const targetRef = useRef(null)
+  const { theme } = useTheme()
   return (
-    <Container
-      layout="blog"
-      title={frontMatter.title}
-      description={frontMatter.summary}
-      // date={new Date(frontMatter.publishedAt).toISOString()}
-      type="article"
-      fullWidth={fullWidth}
-    >
-      <article>
-        <h1 className="font-bold text-3xl text-black dark:text-white">
-          {frontMatter.title}
-        </h1>
-        {frontMatter.type[0] !== 'Page' && (
-          <nav className="flex mt-7 items-start text-gray-500 dark:text-gray-400">
-            <div className="flex mb-4">
-              <a href={BLOG.socialLink || '#'} className="flex">
-                <Image
-                  alt={BLOG.author}
-                  width={24}
-                  height={24}
-                  src={`https://gravatar.com/avatar/${emailHash}`}
-                  className="rounded-full"
-                />
-                <p className="ml-2 md:block">{BLOG.author}</p>
-              </a>
-              <span className="block">&nbsp;/&nbsp;</span>
-            </div>
-            <div className="mr-2 mb-4 md:ml-0">
-              {formatDate(
-                frontMatter?.date?.start_date || frontMatter.createdTime,
-                BLOG.lang
+    <div className={`${BLOG.font} ${theme}`}>
+      <CommonHead meta={meta} />
+      
+      <Progress targetRef={targetRef} />
+
+      <TopNav tags={tags} />
+
+      <div className='flex justify-between'>
+
+        <LeftAside tags={tags} />
+
+        {/* 主要區塊 */}
+        <main className='bg-gray-100 dark:bg-black w-full'>
+          {/* 卡牌水平边距wrapper */}
+          {/* 文章 */}
+          <div className='bg-white dark:border-gray-700 dark:bg-gray-700 duration-200'>
+
+            <header className='md:flex-shrink-0 overflow-y-hidden shadow-sm animate__fadeIn animate__animated'>
+              {/* 封面 */}
+              {frontMatter.page_cover && frontMatter.page_cover.length > 1 && (
+                <img className='bg-center object-cover w-full' style={{ maxHeight: '40rem' }}
+                     src={frontMatter.page_cover} alt={frontMatter.title} />
               )}
-            </div>
-            {frontMatter.tags && (
-              <div className="flex flex-nowrap max-w-full overflow-x-auto article-tags">
-                {frontMatter.tags.map(tag => (
-                  <TagItem key={tag} tag={tag} />
-                ))}
+            </header>
+
+            <article
+              ref={targetRef}
+              className='overflow-x-auto px-10 py-10 max-w-3xl mx-auto bg-white dark:border-gray-700 dark:bg-gray-700'>
+              {/* 文章標題*/}
+              <h1 className='font-bold text-4xl text-black my-5 dark:text-white animate__animated animate__fadeIn'>
+                {frontMatter.title}
+              </h1>
+
+              {/* 文章訊息 */}
+              <div className='justify-between flex flex-wrap bg-gray-50 p-2
+                  dark:bg-gray-700 dark:text-white'>
+                <div className='flex-nowrap flex'>
+
+                  {frontMatter.tags && (
+                    <div className='flex flex-nowrap leading-8 p-1'>
+                      {frontMatter.tags.map(tag => (
+                        <TagItem key={tag} tag={tag} />
+                      ))}
+                    </div>
+                  )}
+
+                  {frontMatter.slug !== 'about' && (<>
+                    <a className='flex-nowrap flex hover:bg-blue-500 hover:text-white duration-200 px-1 mx-1'
+                       href='/article/about'>
+                      <Image href='https://www.baidu.com' alt={BLOG.author} width={20} height={20} src='/avatar.svg'
+                             className='rounded-full' />
+                      <div className='mx-2 leading-6 my-1 md:block'>{BLOG.author}</div>
+                    </a>
+                  </>)}
+
+                  {frontMatter.type[0] !== 'Page' && (
+                    <div className='flex items-start text-gray-500 dark:text-gray-400 text-sm leading-8 pr-3'>
+                      <div>
+                        {formatDate(
+                          frontMatter?.date?.start_date || frontMatter.createdTime,
+                          BLOG.lang
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                </div>
+
+              <div>{children}</div>
+
+              {/* Notion文章主體 */}
+              {blockMap && (
+                <div>
+                  <NotionRenderer
+                    recordMap={blockMap}
+                    components={{
+                      equation: Equation,
+                      code: Code,
+                      collectionRow: CollectionRow,
+                      collection: Collection
+                    }}
+                    mapPageUrl={mapPageUrl}
+                  />
+                </div>
+              )}
+
+              <div className='flex justify-center py-10'>
+                <RewardButton />
               </div>
-            )}
-          </nav>
-        )}
-        {children}
-        {blockMap && (
-          <div className="-mt-4">
-            <NotionRenderer
-              recordMap={blockMap}
-              components={{
-                equation: Equation,
-                code: Code,
-                collectionRow: CollectionRow
-              }}
-              mapPageUrl={mapPageUrl}
-            />
+
+              <div className='text-gray-800 my-5 dark:text-gray-300'>
+                <div className='mt-4 my-2 font-bold'>繼續閱讀</div>
+                <div className='flex flex-wrap justify-between py-2'>
+                  {/* <Link href={prev.slug}> */}
+                  {/* <div>上一篇:<a className='py-1 underline cursor-pointer ml-1'>{prev.title}</a></div> */}
+                  {/* </Link> */}
+                  <BlogPostMini post={prev} />
+                  <BlogPostMini post={next} />
+                  {/* <Link href={next.slug}> */}
+                  {/* <div>下一篇:<a className='py-1 underline cursor-pointer ml-1'>{next.title}</a></div> */}
+                  {/* </Link> */}
+                </div>
+              </div>
+
+              {/* 分享 */}
+              {/* <ShareBar post={frontMatter} /> */}
+              {/* <Share url={shareUrl} title={frontMatter.title}/> */}
+
+              {/* 評論 */}
+              <Comment frontMatter={frontMatter} />
+            </article>
+
           </div>
-        )}
-      </article>
-      <div className="flex justify-between font-medium text-gray-500 dark:text-gray-400">
-        <a>
-          <button
-            onClick={() => router.push(BLOG.path || '/')}
-            className="mt-2 cursor-pointer hover:text-black dark:hover:text-gray-100"
-          >
-            ← {locale.POST.BACK}
-          </button>
-        </a>
-        <a>
-          <button
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="mt-2 cursor-pointer hover:text-black dark:hover:text-gray-100"
-          >
-            ↑ {locale.POST.TOP}
-          </button>
-        </a>
+
+          <RightWidget post={frontMatter} />
+          {/* <ShareButton post={frontMatter}/> */}
+          {/* <TopJumper /> */}
+
+        </main>
+
+        {/* 右侧内容 */}
+        <RightAside toc={frontMatter.toc} />
+
       </div>
-      <Comments frontMatter={frontMatter} />
-    </Container>
+
+    </div>
   )
 }
 
